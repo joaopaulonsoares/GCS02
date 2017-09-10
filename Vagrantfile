@@ -8,22 +8,17 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
 
   # Web
-  config.vm.define "web" do |apache|
+  config.vm.define "web" do |web|
 
-    apache.vm.hostname = "apache.hacklab"
+    web.vm.hostname = "web"
+    web.vm.box = "ubuntu/trusty64"
+    web.vm.network "forwarded_port", guest: 8000, host: 8000
+    web.vm.network "private_network", ip: "192.168.1.10"
 
-    apache.vm.box = "ubuntu/trusty64"
+    web.vm.synced_folder ".", "/vagrant", type: "rsync"
+    config.vm.synced_folder ".", "/vagrant", type: "rsync"
 
-    apache.vm.network "forwarded_port", guest: 8000, host: 8000
-
-    apache.vm.network "private_network", ip: "192.168.1.10"
-
-    apache.vm.synced_folder ".", "/django-basico-postgree", type: "rsync"
-    config.vm.synced_folder ".", "/django-basico-postgree", type: "rsync"
-
-
-
-    apache.vm.provider "virtualbox" do |v|
+    web.vm.provider "virtualbox" do |v|
       v.name = "dj"
       # Display the VirtualBox GUI when booting the machine
       v.gui = false
@@ -32,11 +27,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.memory = "512"
     end
 
-    apache.vm.provision "shell", inline: <<-SHELL
+    web.vm.provision "shell", inline: <<-SHELL
+      # apt-get update
       sudo apt-get install -y python-pip python-dev libpq-dev postgresql postgresql-contrib
       sudo pip install django flake8 psycopg2
-      # python3 manage.py migrate
-      # python3 manage.py loaddata db.fixture.json
 
     SHELL
 
@@ -44,17 +38,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # End Web
 
   # DB
-  config.vm.define "db" do |mysql|
+  config.vm.define "db" do |db|
 
-    mysql.vm.hostname = "db"
+    db.vm.hostname = "db"
+    db.vm.box = "ubuntu/trusty64"
+    db.vm.network "forwarded_port", guest: 5432, host: 5432
+    db.vm.network "private_network", ip: "192.168.1.11"
 
-    mysql.vm.box = "ubuntu/trusty64"
-
-    mysql.vm.network "forwarded_port", guest: 5432, host: 5432
-
-    mysql.vm.network "private_network", ip: "192.168.1.11"
-
-    mysql.vm.provider "virtualbox" do |vb|
+    db.vm.provider "virtualbox" do |vb|
       vb.name = "dj-database"
       # Display the VirtualBox GUI when booting the machine
       vb.gui = false
@@ -63,7 +54,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       vb.memory = "512"
     end
 
-    mysql.vm.provision "shell", inline: <<-SHELL
+    db.vm.provision "shell", inline: <<-SHELL
       # apt-get update
       sudo apt-get install -y postgresql
       sudo su - postgres -c "psql -f /vagrant/db-config.sql"
